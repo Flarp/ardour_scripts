@@ -1,10 +1,13 @@
----- marker_time_manip.lua
+---- time_manip_marker.lua
 -- time stretching markers
 -- ie markers at t = 14 32 56 with a factor of .5
 -- will be moved to t = 7 16 28
 ardour {
 	["type"] = "EditorAction",
-	name = "Change Speed of Markers"
+	name = "Change Speed of Markers",
+    author = "Flarp",
+    license = "BSD",
+    description = "Move markers by transforming them with a given factor",
 }
 
 function factory (_nada)
