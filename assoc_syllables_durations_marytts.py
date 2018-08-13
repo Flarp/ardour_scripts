@@ -24,27 +24,29 @@ durations_query = urlencode({
   "VOICE": "cmu-slt-hsmm",
   "OUTPUT_TYPE": "REALISED_DURATIONS"
 })
+
+audio_query = urlencode({
+    "INPUT_TYPE": "TEXT",
+    "INPUT_TEXT": text,
+    "LOCALE": "en_US",
+    "VOICE": "cmu-slt-hsmm",
+    "OUTPUT_TYPE": "AUDIO",
+    "AUDIO": "WAVE"
+})
+
 mary_server = httplib2.Http()
 (_, allophones_content) = mary_server.request(mary_destination, "POST", allophone_query)
 (_, durations_content) = mary_server.request(mary_destination, "POST", durations_query)
+(_, audio_content) = mary_server.request(mary_destination, "POST", audio_query)
 
+open("test.wav", "wb").write(audio_content)
 
 
 SOUND = 0
 SILENCE = 1
 
 # my year of haskell has culmuinated into this one blob of code
-syllables = list(
-    chain(
-      *map(lambda prosody: list(
-        map(
-          lambda x: x.attrib["ph"].replace(" ", ""),
-          prosody[0].iter("{http://mary.dfki.de/2002/MaryXML}syllable")
-        )
-      )
-    , XML(allophones_content)[0][0])
-  )
-)
+syllables = list(map(lambda x: x.attrib["ph"].replace(" ",""), XML(allophones_content).findall(".//{http://mary.dfki.de/2002/MaryXML}syllable")))
 
 def temp(x):
   splitted = x.decode().split(" ")
@@ -88,4 +90,3 @@ for duration in syllable_durations:
   accum_duration += duration[1]
 
 file.writeFile(open("myfile.mid", "wb"))
-
