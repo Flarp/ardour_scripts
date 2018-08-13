@@ -1,6 +1,34 @@
-from xml.etree.ElementTree import parse
+from xml.etree.ElementTree import XML
 from itertools import chain
 from midiutil import MIDIFile
+import httplib2
+from urllib.parse import urlencode, quote
+import sys
+
+text = open(sys.argv[1], "r").read()
+print(text)
+
+mary_destination = "http://localhost:59125/process"
+allophone_query = urlencode({
+  "INPUT_TYPE": "TEXT",
+  "INPUT_TEXT": text,
+  "LOCALE": "en_US",
+  "VOICE": "cmu-slt-hsmm",
+  "OUTPUT_TYPE": "ALLOPHONES"
+})
+
+durations_query = urlencode({
+  "INPUT_TYPE": "TEXT",
+  "INPUT_TEXT": text,
+  "LOCALE": "en_US",
+  "VOICE": "cmu-slt-hsmm",
+  "OUTPUT_TYPE": "REALISED_DURATIONS"
+})
+mary_server = httplib2.Http()
+(_, allophones_content) = mary_server.request(mary_destination, "POST", allophone_query)
+(_, durations_content) = mary_server.request(mary_destination, "POST", durations_query)
+
+
 
 SOUND = 0
 SILENCE = 1
@@ -14,17 +42,17 @@ syllables = list(
           prosody[0].iter("{http://mary.dfki.de/2002/MaryXML}syllable")
         )
       )
-    , parse("allophones.xml").getroot()[0][0])
+    , XML(allophones_content)[0][0])
   )
 )
 
 def temp(x):
-  splitted = x.split(" ")
+  splitted = x.decode().split(" ")
   return [float(splitted[0]), splitted[2]]
 
 durations = list(map(
   temp,
-  open("durations.txt").read().splitlines()[1:]
+  durations_content.splitlines()[1:]
 ))
 
 # [position in the syllable list, character position, position in the syllable_duration list]
@@ -33,7 +61,6 @@ syllable_durations = []
 prev_duration = 0
 
 for duration in durations:
-  
   if len(syllable_durations) != (positions[2] + 1):
     syllable_durations.append(["SOUND", 0])
   if duration[1] == "_":
@@ -58,7 +85,7 @@ for duration in syllable_durations:
     continue
   if duration[0] == "SOUND":
     file.addNote(0, 0, 69, accum_duration, duration[1], 127)
-    print("ok")
   accum_duration += duration[1]
 
 file.writeFile(open("myfile.mid", "wb"))
+
