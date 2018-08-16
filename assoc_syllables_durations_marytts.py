@@ -45,7 +45,6 @@ open("test.wav", "wb").write(audio_content)
 SOUND = 0
 SILENCE = 1
 
-# my year of haskell has culmuinated into this one blob of code
 syllables = list(map(lambda x: x.attrib["ph"].replace(" ",""), XML(allophones_content).findall(".//{http://mary.dfki.de/2002/MaryXML}syllable")))
 
 def temp(x):
@@ -62,6 +61,19 @@ positions = [0,0,0]
 syllable_durations = []
 prev_duration = 0
 
+# correct durations
+prev_pause = 0
+current_shift = 0
+prev_time = 0
+
+for i in range(len(durations)):
+  durations[i][0] -= current_shift
+  if durations[i-1][1] == "_" and ((durations[i][0] - durations[i-1][0]) > 0.2):
+    current_shift += prev_time
+    durations[i][0] -= prev_time
+  prev_time = durations[i][0]
+
+# mark silence and sound
 for duration in durations:
   if len(syllable_durations) != (positions[2] + 1):
     syllable_durations.append(["SOUND", 0])
@@ -79,6 +91,7 @@ for duration in durations:
     positions[2] += 1
     positions[1] = 0
 
+# write deltas to MIDI file
 accum_duration = 0
 file = MIDIFile(deinterleave=False)
 file.addTempo(0, 0, 60)
